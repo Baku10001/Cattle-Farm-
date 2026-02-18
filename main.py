@@ -140,98 +140,109 @@ class DashboardWidget(QWidget):
         self.setLayout(layout)
     
     def create_kpi_card(self, title, value, icon, color):
-        """Create KPI card widget with clean borderless design"""
+        """Create smaller KPI card widget with muted colors"""
+        # Convert vibrant colors to muted/pastel versions
+        muted_colors = {
+            '#27ae60': '#7fb3a3',  # Green → Muted teal-green
+            '#e74c3c': '#d4a5a5',  # Red → Muted rose
+            '#3498db': '#9bb8d3',  # Blue → Muted blue
+            '#f39c12': '#e6c9a8',  # Orange → Muted peach
+            '#9b59b6': '#c4b5d4',  # Purple → Muted lavender
+            '#1abc9c': '#8ec9c8',  # Teal → Muted mint
+            '#34495e': '#9ea7b0',  # Dark blue-gray → Muted gray-blue
+            '#e67e22': '#dcbfa3',  # Dark orange → Muted tan
+            '#8e44ad': '#b8a8c8',  # Dark purple → Muted purple
+        }
+        muted_color = muted_colors.get(color, '#b8c5d6')  # Default muted gray-blue
+        
         card = QFrame()
         card.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
         card.setStyleSheet(f"""
             QFrame {{
-                background-color: {color};
-                border: none;
-                border-radius: 20px;
-                margin: 8px;
+                background-color: {muted_color};
+                border: 1px solid #bdc3c7;
+                border-radius: 8px;
+                margin: 4px;
                 padding: 0px;
             }}
         """)
         
         layout = QVBoxLayout()
-        layout.setSpacing(20)
-        layout.setContentsMargins(35, 30, 35, 30)
+        layout.setSpacing(8)
+        layout.setContentsMargins(15, 12, 15, 12)
         
-        # Icon without border or container - with proper spacing
+        # Smaller icon
         icon_label = QLabel(icon)
-        icon_label.setFont(QFont("Segoe UI Emoji", 48))
-        icon_label.setStyleSheet("color: white; background: transparent; border: none;")
+        icon_label.setFont(QFont("Segoe UI Emoji", 28))
+        icon_label.setStyleSheet("color: #5a6c7d; background: transparent; border: none;")
         icon_label.setAlignment(Qt.AlignCenter)
-        icon_label.setMinimumHeight(70)
-        icon_label.setSizePolicy(icon_label.sizePolicy().horizontalPolicy(), icon_label.sizePolicy().Expanding)
+        icon_label.setMinimumHeight(35)
         layout.addWidget(icon_label)
         
-        # Title without border
+        # Smaller title
         title_label = QLabel(title)
-        title_label.setFont(QFont("Segoe UI", 13, QFont.Bold))
+        title_label.setFont(QFont("Segoe UI", 10))
         title_label.setStyleSheet("""
-            color: white; 
+            color: #5a6c7d; 
             background: transparent;
             border: none;
         """)
         title_label.setWordWrap(True)
         title_label.setAlignment(Qt.AlignCenter)
-        title_label.setMinimumHeight(45)
-        title_label.setSizePolicy(title_label.sizePolicy().horizontalPolicy(), title_label.sizePolicy().Expanding)
+        title_label.setMinimumHeight(25)
         layout.addWidget(title_label)
         
-        # Value - with proper height to prevent cropping
+        # Smaller value
         display_value = str(value) if value is not None and str(value).strip() else "0"
         value_label = QLabel(display_value)
-        value_label.setFont(QFont("Segoe UI", 26, QFont.Bold))
+        value_label.setFont(QFont("Segoe UI", 14, QFont.Bold))
         value_label.setStyleSheet("""
-            color: white;
+            color: #3d4f5f;
             background: transparent;
             border: none;
-            padding: 10px;
+            padding: 5px;
         """)
         value_label.setAlignment(Qt.AlignCenter)
         value_label.setWordWrap(True)
-        value_label.setMinimumHeight(60)
-        value_label.setSizePolicy(value_label.sizePolicy().horizontalPolicy(), value_label.sizePolicy().Expanding)
+        value_label.setMinimumHeight(30)
         layout.addWidget(value_label)
         
         layout.addStretch()
         card.setLayout(layout)
-        card.setMinimumHeight(260)
-        card.setMinimumWidth(320)
+        card.setMinimumHeight(140)
+        card.setMinimumWidth(180)
         
         # Store references
         card.value_label = value_label
         card.title_label = title_label
         card.icon_label = icon_label
-        card.original_color = color
+        card.original_color = muted_color
         
-        # Hover effects
+        # Subtle hover effects
         card.enterEvent = lambda event: self.card_hover_enter(card)
         card.leaveEvent = lambda event: self.card_hover_leave(card)
         
         return card
     
     def lighten_color(self, color):
-        """Lighten a hex color by 20%"""
+        """Lighten a hex color slightly for hover effect"""
         color = color.lstrip('#')
         r, g, b = tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
-        r = min(255, int(r * 1.2))
-        g = min(255, int(g * 1.2))
-        b = min(255, int(b * 1.2))
+        r = min(255, int(r * 1.1))
+        g = min(255, int(g * 1.1))
+        b = min(255, int(b * 1.1))
         return f'#{r:02x}{g:02x}{b:02x}'
     
     def card_hover_enter(self, card):
-        """Handle card hover enter - lighten background color"""
+        """Handle card hover enter - subtle lightening"""
         color = card.original_color
         lighter_color = self.lighten_color(color)
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: {lighter_color};
-                border: none;
-                border-radius: 20px;
-                margin: 8px;
+                border: 1px solid #bdc3c7;
+                border-radius: 8px;
+                margin: 4px;
                 padding: 0px;
             }}
         """)
@@ -242,9 +253,9 @@ class DashboardWidget(QWidget):
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: {color};
-                border: none;
-                border-radius: 20px;
-                margin: 8px;
+                border: 1px solid #bdc3c7;
+                border-radius: 8px;
+                margin: 4px;
                 padding: 0px;
             }}
         """)
