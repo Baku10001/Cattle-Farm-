@@ -1,0 +1,170 @@
+[
+  {
+    "code": "ACC-1000-0001",
+    "name": "Cash in Hand",
+    "type": "asset",
+    "category": "current_assets",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-1000-0002",
+    "name": "Bank Account",
+    "type": "asset",
+    "category": "current_assets",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-1100-0001",
+    "name": "Accounts Receivable",
+    "type": "asset",
+    "category": "current_assets",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-1200-0001",
+    "name": "Feed Inventory",
+    "type": "asset",
+    "category": "current_assets",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-1200-0002",
+    "name": "Medicine Inventory",
+    "type": "asset",
+    "category": "current_assets",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-1500-0001",
+    "name": "Cattle - Dairy Cows",
+    "type": "asset",
+    "category": "fixed_assets",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-1600-0001",
+    "name": "Farm Equipment",
+    "type": "asset",
+    "category": "fixed_assets",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-1700-0001",
+    "name": "Buildings",
+    "type": "asset",
+    "category": "fixed_assets",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-2000-0001",
+    "name": "Accounts Payable",
+    "type": "liability",
+    "category": "current_liabilities",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-2100-0001",
+    "name": "Wages Payable",
+    "type": "liability",
+    "category": "current_liabilities",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-2500-0001",
+    "name": "Long-term Loans",
+    "type": "liability",
+    "category": "long_term_liabilities",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-3000-0001",
+    "name": "Owner Equity",
+    "type": "equity",
+    "category": "equity",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-3100-0001",
+    "name": "Retained Earnings",
+    "type": "equity",
+    "category": "equity",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-4000-0001",
+    "name": "Milk Sales Revenue",
+    "type": "revenue",
+    "category": "operating_revenue",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-4100-0001",
+    "name": "Cattle Sales Revenue",
+    "type": "revenue",
+    "category": "operating_revenue",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-4900-0001",
+    "name": "Other Revenue",
+    "type": "revenue",
+    "category": "other_revenue",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-5000-0001",
+    "name": "Feed Expenses",
+    "type": "expense",
+    "category": "direct_costs",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-5100-0001",
+    "name": "Veterinary Expenses",
+    "type": "expense",
+    "category": "direct_costs",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-5200-0001",
+    "name": "Breeding Expenses",
+    "type": "expense",
+    "category": "direct_costs",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-6000-0001",
+    "name": "Salaries & Wages",
+    "type": "expense",
+    "category": "operating_expenses",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-6100-0001",
+    "name": "Utilities",
+    "type": "expense",
+    "category": "operating_expenses",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-6200-0001",
+    "name": "Equipment Maintenance",
+    "type": "expense",
+    "category": "operating_expenses",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-6300-0001",
+    "name": "Insurance",
+    "type": "expense",
+    "category": "operating_expenses",
+    "balance": 0.0
+  },
+  {
+    "code": "ACC-7000-0001",
+    "name": "Depreciation Expense",
+    "type": "expense",
+    "category": "non_operating_expenses",
+    "balance": 0.0
+  }
+]

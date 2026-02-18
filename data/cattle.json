@@ -1,0 +1,52 @@
+[
+  {
+    "name": "ssss",
+    "breed": "Holstein",
+    "sex": "Female",
+    "birth_date": "2025-09-14",
+    "sire_code": "",
+    "dam_code": "",
+    "status": "deleted",
+    "body_condition": 3,
+    "registration_number": "ssssssss",
+    "notes": "",
+    "code": "COW-2509-0001",
+    "created_date": "2025-09-14T09:16:09.962585",
+    "modified_date": "2026-02-18T16:18:42.280688",
+    "created_by": "system"
+  },
+  {
+    "name": "",
+    "ear_tag": "24188",
+    "breed": "Holstein",
+    "sex": "Female",
+    "birth_date": "2021-01-18",
+    "sire_code": "",
+    "dam_code": "",
+    "status": "active",
+    "body_condition": 3,
+    "registration_number": "",
+    "notes": "",
+    "code": "COW-2602-0002",
+    "created_date": "2026-02-18T18:25:10.379996",
+    "modified_date": "2026-02-18T18:26:14.313080",
+    "created_by": "system"
+  },
+  {
+    "name": "",
+    "ear_tag": "70258",
+    "breed": "Holstein",
+    "sex": "Female",
+    "birth_date": "2026-02-18",
+    "sire_code": "",
+    "dam_code": "",
+    "status": "active",
+    "body_condition": 3,
+    "registration_number": "",
+    "notes": "",
+    "code": "COW-2602-0003",
+    "created_date": "2026-02-18T18:26:57.784624",
+    "modified_date": "2026-02-18T18:26:57.784629",
+    "created_by": "system"
+  }
+]

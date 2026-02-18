@@ -1,0 +1,18 @@
+{
+  "production": [],
+  "deliveries": [
+    {
+      "date": "2025-12-21",
+      "buyer": "",
+      "buyer_contact": "",
+      "quantity": 300.0,
+      "rate": 71.0,
+      "total_amount": 21300.0,
+      "payment_status": "Pending",
+      "payment_method": "Cash",
+      "notes": "",
+      "id": 1,
+      "invoice_number": "INV-0001"
+    }
+  ]
+}
