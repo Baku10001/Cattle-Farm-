@@ -10,9 +10,10 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdi
                              QSpinBox, QTextEdit, QMessageBox, QMenu, QDialogButtonBox,
                              QFrame, QScrollArea, QGroupBox, QGridLayout, QListWidget)
 from PyQt5.QtCore import Qt, QDate, QTimer
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QFont, QPixmap, QColor
 from datetime import datetime, timedelta
 from data_manager import DataManager
+from lactation_management import LactationDataManager, LactationStageManager
 
 class HerdManagementWidget(QWidget):
     """Herd management with breeding cycles and advanced tracking"""
@@ -20,6 +21,7 @@ class HerdManagementWidget(QWidget):
     def __init__(self, data_manager):
         super().__init__()
         self.data_manager = data_manager
+        self.lactation_manager = LactationDataManager(data_manager)
         self.init_ui()
         self.load_cattle_data()
         
@@ -72,8 +74,8 @@ class HerdManagementWidget(QWidget):
         self.cattle_table.setColumnCount(13)
         self.cattle_table.setHorizontalHeaderLabels([
             "Code", "Name", "Ear Tag", "Breed", "Age", "Sex", "Status", 
-            "Sire Code", "Dam Code", "Birth Date", "Body Condition", 
-            "Last Breeding", "Actions"
+            "Lactation Stage", "DIM", "Mother's Tag", "Birth Date", "Body Condition", 
+            "Actions"
         ])
         self.cattle_table.setAlternatingRowColors(True)
         self.cattle_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -87,7 +89,10 @@ class HerdManagementWidget(QWidget):
         self.populate_cattle_table(cattle)
     
     def populate_cattle_table(self, cattle_list):
-        """Populate cattle table with data"""
+        """Populate cattle table with data including lactation stage"""
+        # Load lactation data
+        self.lactation_manager.load_lactation_data()
+        
         self.cattle_table.setRowCount(len(cattle_list))
         
         for row, cattle in enumerate(cattle_list):
@@ -103,11 +108,33 @@ class HerdManagementWidget(QWidget):
             
             self.cattle_table.setItem(row, 5, QTableWidgetItem(cattle.get('sex', '')))
             self.cattle_table.setItem(row, 6, QTableWidgetItem(cattle.get('status', '')))
-            self.cattle_table.setItem(row, 7, QTableWidgetItem(cattle.get('sire_code', '')))
-            self.cattle_table.setItem(row, 8, QTableWidgetItem(cattle.get('dam_code', '')))
-            self.cattle_table.setItem(row, 9, QTableWidgetItem(birth_date))
-            self.cattle_table.setItem(row, 10, QTableWidgetItem(str(cattle.get('body_condition', ''))))
-            self.cattle_table.setItem(row, 11, QTableWidgetItem(cattle.get('last_breeding_date', '')))
+            
+            # Get lactation stage and DIM for female cattle
+            cow_code = cattle.get('code', '')
+            sex = cattle.get('sex', '')
+            
+            if sex == 'Female':
+                # Get or create lactation record
+                lactation_record = self.lactation_manager.get_or_create_lactation_record(cow_code)
+                # Update DIM and stage
+                self.lactation_manager.update_dim_and_stage(cow_code)
+                
+                # Lactation stage with color coding
+                stage_item = QTableWidgetItem(lactation_record.stage.value)
+                stage_color = QColor(LactationStageManager.get_stage_color(lactation_record.stage))
+                stage_item.setBackground(stage_color)
+                self.cattle_table.setItem(row, 7, stage_item)
+                
+                # DIM
+                self.cattle_table.setItem(row, 8, QTableWidgetItem(str(lactation_record.dim)))
+            else:
+                # For male cattle, show N/A
+                self.cattle_table.setItem(row, 7, QTableWidgetItem("N/A"))
+                self.cattle_table.setItem(row, 8, QTableWidgetItem("N/A"))
+            
+            self.cattle_table.setItem(row, 9, QTableWidgetItem(cattle.get('mothers_tag', cattle.get('dam_code', ''))))
+            self.cattle_table.setItem(row, 10, QTableWidgetItem(birth_date))
+            self.cattle_table.setItem(row, 11, QTableWidgetItem(str(cattle.get('body_condition', ''))))
             
             # Actions button
             actions_btn = QPushButton("⚙️ Actions")
@@ -267,8 +294,80 @@ class CattleDialog(QDialog):
         
         # Status and condition
         self.status_combo = QComboBox()
-        self.status_combo.addItems(["Active", "Pregnant", "Dry", "Sick", "Sold"])
+        self.status_combo.addItems(["Active", "Pregnant", "Dry", "Sick", "Sold", "Open", "Recheck"])
         form_layout.addRow("Status:", self.status_combo)
+        
+        # Breeding & Calving Information Group
+        breeding_group = QGroupBox("🐄 Breeding & Calving Information")
+        breeding_layout = QFormLayout()
+        
+        # Last calving info
+        self.last_calving_date = QDateEdit()
+        self.last_calving_date.setCalendarPopup(True)
+        breeding_layout.addRow("Last Calving Date:", self.last_calving_date)
+        
+        self.lactation_number = QSpinBox()
+        self.lactation_number.setRange(0, 20)
+        self.lactation_number.setValue(0)
+        breeding_layout.addRow("Lactation Number:", self.lactation_number)
+        
+        # Breeding info
+        self.last_breeding_date = QDateEdit()
+        self.last_breeding_date.setCalendarPopup(True)
+        breeding_layout.addRow("Last Breeding Date:", self.last_breeding_date)
+        
+        self.expected_calving = QDateEdit()
+        self.expected_calving.setCalendarPopup(True)
+        breeding_layout.addRow("Expected Calving:", self.expected_calving)
+        
+        # Pregnancy status with edge cases
+        self.pregnancy_status = QComboBox()
+        self.pregnancy_status.addItems([
+            "Not Bred",
+            "Bred - Pending Check",
+            "Confirmed Pregnant", 
+            "Open - Failed AI",
+            "Miscarriage/Pregnancy Loss",
+            "Aborted"
+        ])
+        breeding_layout.addRow("Pregnancy Status:", self.pregnancy_status)
+        
+        # Pregnancy check history
+        self.pregnancy_check_date = QDateEdit()
+        self.pregnancy_check_date.setCalendarPopup(True)
+        breeding_layout.addRow("Pregnancy Check Date:", self.pregnancy_check_date)
+        
+        self.pregnancy_check_method = QComboBox()
+        self.pregnancy_check_method.addItems(["Not Checked", "Ultrasound", "Rectal Palpation", "Blood Test", "Visual"])
+        breeding_layout.addRow("Check Method:", self.pregnancy_check_method)
+        
+        # Breeding method
+        self.breeding_method = QComboBox()
+        self.breeding_method.addItems(["Not Bred", "AI", "Natural Service", "ET (Embryo Transfer)"])
+        breeding_layout.addRow("Breeding Method:", self.breeding_method)
+        
+        # Sire info
+        self.sire_code = QLineEdit()
+        self.sire_code.setPlaceholderText("Sire code or bull ID")
+        breeding_layout.addRow("Sire Code:", self.sire_code)
+        
+        breeding_group.setLayout(breeding_layout)
+        form_layout.addRow(breeding_group)
+        
+        # Milking Status (Pregnant cows can still be milking until dry-off)
+        milking_group = QGroupBox("🥛 Milking Status")
+        milking_layout = QFormLayout()
+        
+        self.milking_status = QComboBox()
+        self.milking_status.addItems(["Not Milking", "Milking", "Dry", "Transitioning to Dry"])
+        milking_layout.addRow("Current Milking Status:", self.milking_status)
+        
+        self.dry_off_date = QDateEdit()
+        self.dry_off_date.setCalendarPopup(True)
+        milking_layout.addRow("Dry-off Date:", self.dry_off_date)
+        
+        milking_group.setLayout(milking_layout)
+        form_layout.addRow(milking_group)
         
         self.body_condition = QSpinBox()
         self.body_condition.setRange(1, 5)
@@ -348,12 +447,58 @@ class CattleDialog(QDialog):
         if index >= 0:
             self.status_combo.setCurrentIndex(index)
         
+        # Populate calving and breeding info
+        last_calving = self.cattle_data.get('last_calving_date', '')
+        if last_calving:
+            self.last_calving_date.setDate(QDate.fromString(last_calving, "yyyy-MM-dd"))
+        
+        self.lactation_number.setValue(int(self.cattle_data.get('lactation_number', 0)))
+        
+        last_breeding = self.cattle_data.get('last_breeding_date', '')
+        if last_breeding:
+            self.last_breeding_date.setDate(QDate.fromString(last_breeding, "yyyy-MM-dd"))
+        
+        expected_calving = self.cattle_data.get('expected_calving_date', '')
+        if expected_calving:
+            self.expected_calving.setDate(QDate.fromString(expected_calving, "yyyy-MM-dd"))
+        
+        pregnancy_status = self.cattle_data.get('pregnancy_status', 'Not Bred')
+        index = self.pregnancy_status.findText(pregnancy_status)
+        if index >= 0:
+            self.pregnancy_status.setCurrentIndex(index)
+        
+        pregnancy_check = self.cattle_data.get('pregnancy_check_date', '')
+        if pregnancy_check:
+            self.pregnancy_check_date.setDate(QDate.fromString(pregnancy_check, "yyyy-MM-dd"))
+        
+        check_method = self.cattle_data.get('pregnancy_check_method', 'Not Checked')
+        index = self.pregnancy_check_method.findText(check_method)
+        if index >= 0:
+            self.pregnancy_check_method.setCurrentIndex(index)
+        
+        breeding_method = self.cattle_data.get('breeding_method', 'Not Bred')
+        index = self.breeding_method.findText(breeding_method)
+        if index >= 0:
+            self.breeding_method.setCurrentIndex(index)
+        
+        self.sire_code.setText(self.cattle_data.get('sire_code', ''))
+        
+        # Populate milking status
+        milking_status = self.cattle_data.get('milking_status', 'Not Milking')
+        index = self.milking_status.findText(milking_status)
+        if index >= 0:
+            self.milking_status.setCurrentIndex(index)
+        
+        dry_off = self.cattle_data.get('dry_off_date', '')
+        if dry_off:
+            self.dry_off_date.setDate(QDate.fromString(dry_off, "yyyy-MM-dd"))
+        
         self.body_condition.setValue(int(self.cattle_data.get('body_condition', 3)))
         self.registration_number.setText(self.cattle_data.get('registration_number', ''))
         self.notes.setPlainText(self.cattle_data.get('notes', ''))
     
     def save_cattle(self):
-        """Save cattle data"""
+        """Save cattle data with all breeding and calving information"""
         data = {
             'name': self.name_input.text(),
             'ear_tag': self.ear_tag_input.text(),
@@ -365,7 +510,21 @@ class CattleDialog(QDialog):
             'status': self.status_combo.currentText().lower(),
             'body_condition': self.body_condition.value(),
             'registration_number': self.registration_number.text(),
-            'notes': self.notes.toPlainText()
+            'notes': self.notes.toPlainText(),
+            # Calving info
+            'last_calving_date': self.last_calving_date.date().toString("yyyy-MM-dd") if self.last_calving_date.date() else '',
+            'lactation_number': self.lactation_number.value(),
+            # Breeding info
+            'last_breeding_date': self.last_breeding_date.date().toString("yyyy-MM-dd") if self.last_breeding_date.date() else '',
+            'expected_calving_date': self.expected_calving.date().toString("yyyy-MM-dd") if self.expected_calving.date() else '',
+            'pregnancy_status': self.pregnancy_status.currentText(),
+            'pregnancy_check_date': self.pregnancy_check_date.date().toString("yyyy-MM-dd") if self.pregnancy_check_date.date() else '',
+            'pregnancy_check_method': self.pregnancy_check_method.currentText(),
+            'breeding_method': self.breeding_method.currentText(),
+            'sire_code': self.sire_code.text(),
+            # Milking status
+            'milking_status': self.milking_status.currentText(),
+            'dry_off_date': self.dry_off_date.date().toString("yyyy-MM-dd") if self.dry_off_date.date() else ''
         }
         
         if self.cattle_data:

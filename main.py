@@ -23,6 +23,7 @@ from herd_management import HerdManagementWidget
 from workers_payroll_management import WorkersPayrollWidget
 from milk_management import MilkManagementWidget
 from feed_management import FeedManagementWidget
+from lactation_management_ui import LactationManagementWidget
 from reporting_engine import ReportingEngine
 
 class DashboardWidget(QWidget):
@@ -437,6 +438,10 @@ class MainWindow(QMainWindow):
         # Milk Management
         self.milk_widget = MilkManagementWidget(self.data_manager)
         self.tab_widget.addTab(self.milk_widget, "🥛 Milk")
+        
+        # Lactation Cycle Management
+        self.lactation_widget = LactationManagementWidget(self.data_manager)
+        self.tab_widget.addTab(self.lactation_widget, "🔄 Lactation")
         
         # Feed Management
         self.feed_widget = FeedManagementWidget(self.data_manager)
