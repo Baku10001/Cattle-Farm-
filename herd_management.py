@@ -292,33 +292,32 @@ class CattleDialog(QDialog):
         self.load_parent_options(self.dam_combo, "Female")
         form_layout.addRow("Dam Code:", self.dam_combo)
         
-        # Status and condition
+        # Status and condition - Herd presence status only (not reproductive/milking)
         self.status_combo = QComboBox()
-        self.status_combo.addItems(["Active", "Pregnant", "Dry", "Sick", "Sold", "Open", "Recheck"])
-        form_layout.addRow("Status:", self.status_combo)
+        self.status_combo.addItems(["Active", "Inactive", "Sold", "Deceased", "Quarantine"])
+        self.status_combo.setToolTip("Herd management status - use Pregnancy Status and Milking Status for reproductive/lactation state")
+        form_layout.addRow("Herd Status:", self.status_combo)
         
         # Breeding & Calving Information Group
         breeding_group = QGroupBox("🐄 Breeding & Calving Information")
         breeding_layout = QFormLayout()
         
-        # Last calving info
-        self.last_calving_date = QDateEdit()
-        self.last_calving_date.setCalendarPopup(True)
-        breeding_layout.addRow("Last Calving Date:", self.last_calving_date)
-        
-        self.lactation_number = QSpinBox()
-        self.lactation_number.setRange(0, 20)
-        self.lactation_number.setValue(0)
-        breeding_layout.addRow("Lactation Number:", self.lactation_number)
-        
-        # Breeding info
+        # Only essential dates - others auto-calculate
         self.last_breeding_date = QDateEdit()
         self.last_breeding_date.setCalendarPopup(True)
+        self.last_breeding_date.setToolTip("Enter breeding date - Expected calving and dry-off will auto-calculate (280 days gestation)")
         breeding_layout.addRow("Last Breeding Date:", self.last_breeding_date)
         
-        self.expected_calving = QDateEdit()
-        self.expected_calving.setCalendarPopup(True)
-        breeding_layout.addRow("Expected Calving:", self.expected_calving)
+        # Breeding method selection triggers auto-calculations
+        self.breeding_method = QComboBox()
+        self.breeding_method.addItems(["Not Bred", "AI", "Natural Service", "ET (Embryo Transfer)"])
+        self.breeding_method.currentTextChanged.connect(self.on_breeding_method_changed)
+        breeding_layout.addRow("Breeding Method:", self.breeding_method)
+        
+        # Sire info
+        self.sire_code = QLineEdit()
+        self.sire_code.setPlaceholderText("Sire code or bull ID")
+        breeding_layout.addRow("Sire Code:", self.sire_code)
         
         # Pregnancy status with edge cases
         self.pregnancy_status = QComboBox()
@@ -330,26 +329,37 @@ class CattleDialog(QDialog):
             "Miscarriage/Pregnancy Loss",
             "Aborted"
         ])
+        self.pregnancy_status.setToolTip("Reproductive/breeding status of the animal")
+        self.pregnancy_status.currentTextChanged.connect(self.on_pregnancy_status_changed)
         breeding_layout.addRow("Pregnancy Status:", self.pregnancy_status)
         
-        # Pregnancy check history
+        # Auto-calculated expected calving (read-only, shows calculation)
+        self.expected_calving = QDateEdit()
+        self.expected_calving.setCalendarPopup(True)
+        self.expected_calving.setToolTip("Auto-calculated: Breeding date + 280 days (9 months)")
+        breeding_layout.addRow("Expected Calving (Auto):", self.expected_calving)
+        
+        # Pregnancy check date - auto-set to 32 days after breeding
         self.pregnancy_check_date = QDateEdit()
         self.pregnancy_check_date.setCalendarPopup(True)
+        self.pregnancy_check_date.setToolTip("Auto-suggested: 32 days after breeding. Adjust if needed.")
         breeding_layout.addRow("Pregnancy Check Date:", self.pregnancy_check_date)
         
         self.pregnancy_check_method = QComboBox()
         self.pregnancy_check_method.addItems(["Not Checked", "Ultrasound", "Rectal Palpation", "Blood Test", "Visual"])
         breeding_layout.addRow("Check Method:", self.pregnancy_check_method)
         
-        # Breeding method
-        self.breeding_method = QComboBox()
-        self.breeding_method.addItems(["Not Bred", "AI", "Natural Service", "ET (Embryo Transfer)"])
-        breeding_layout.addRow("Breeding Method:", self.breeding_method)
+        # Last calving info - only if applicable
+        self.last_calving_date = QDateEdit()
+        self.last_calving_date.setCalendarPopup(True)
+        self.last_calving_date.setToolTip("Only if cow has calved before. For heifers, leave blank.")
+        breeding_layout.addRow("Last Calving Date (if any):", self.last_calving_date)
         
-        # Sire info
-        self.sire_code = QLineEdit()
-        self.sire_code.setPlaceholderText("Sire code or bull ID")
-        breeding_layout.addRow("Sire Code:", self.sire_code)
+        self.lactation_number = QSpinBox()
+        self.lactation_number.setRange(0, 20)
+        self.lactation_number.setValue(0)
+        self.lactation_number.setToolTip("0 for heifers, 1+ for cows that have calved")
+        breeding_layout.addRow("Lactation Number:", self.lactation_number)
         
         breeding_group.setLayout(breeding_layout)
         form_layout.addRow(breeding_group)
@@ -360,11 +370,34 @@ class CattleDialog(QDialog):
         
         self.milking_status = QComboBox()
         self.milking_status.addItems(["Not Milking", "Milking", "Dry", "Transitioning to Dry"])
+        self.milking_status.setToolTip("Lactation/milking production status")
         milking_layout.addRow("Current Milking Status:", self.milking_status)
         
+        # Auto-calculated dry-off date (60 days before expected calving)
         self.dry_off_date = QDateEdit()
         self.dry_off_date.setCalendarPopup(True)
-        milking_layout.addRow("Dry-off Date:", self.dry_off_date)
+        self.dry_off_date.setToolTip("Auto-calculated: 60 days before expected calving (220 days after breeding)")
+        milking_layout.addRow("Dry-off Date (Auto):", self.dry_off_date)
+        
+        # Quick action buttons for common scenarios
+        scenario_layout = QHBoxLayout()
+        
+        heifer_btn = QPushButton("🐄 New Heifer")
+        heifer_btn.setToolTip("Preset for first-time heifer (Not Bred, Not Milking, Lactation 0)")
+        heifer_btn.clicked.connect(self.set_heifer_preset)
+        scenario_layout.addWidget(heifer_btn)
+        
+        fresh_btn = QPushButton("🥛 Fresh Cow")
+        fresh_btn.setToolTip("Preset for newly calved cow (Milking, Lactation +1)")
+        fresh_btn.clicked.connect(self.set_fresh_cow_preset)
+        scenario_layout.addWidget(fresh_btn)
+        
+        dry_btn = QPushButton("🛑 Dry Cow")
+        dry_btn.setToolTip("Preset for dry period (Dry status)")
+        dry_btn.clicked.connect(self.set_dry_cow_preset)
+        scenario_layout.addWidget(dry_btn)
+        
+        milking_layout.addRow("Quick Presets:", scenario_layout)
         
         milking_group.setLayout(milking_layout)
         form_layout.addRow(milking_group)
@@ -397,6 +430,112 @@ class CattleDialog(QDialog):
         
         layout.addLayout(button_layout)
         self.setLayout(layout)
+        
+        # Set up tab order for form navigation
+        self.setup_tab_order()
+    
+    def setup_tab_order(self):
+        """Set tab order and make Enter key move to next field"""
+        # Set explicit tab order - streamlined for fewer fields
+        self.setTabOrder(self.name_input, self.ear_tag_input)
+        self.setTabOrder(self.ear_tag_input, self.breed_combo)
+        self.setTabOrder(self.breed_combo, self.sex_combo)
+        self.setTabOrder(self.sex_combo, self.birth_date)
+        self.setTabOrder(self.birth_date, self.sire_combo)
+        self.setTabOrder(self.sire_combo, self.dam_combo)
+        self.setTabOrder(self.dam_combo, self.status_combo)
+        self.setTabOrder(self.status_combo, self.last_breeding_date)
+        self.setTabOrder(self.last_breeding_date, self.breeding_method)
+        self.setTabOrder(self.breeding_method, self.sire_code)
+        self.setTabOrder(self.sire_code, self.pregnancy_status)
+        self.setTabOrder(self.pregnancy_status, self.pregnancy_check_method)
+        self.setTabOrder(self.pregnancy_check_method, self.last_calving_date)
+        self.setTabOrder(self.last_calving_date, self.lactation_number)
+        self.setTabOrder(self.lactation_number, self.milking_status)
+        self.setTabOrder(self.milking_status, self.body_condition)
+        self.setTabOrder(self.body_condition, self.registration_number)
+        self.setTabOrder(self.registration_number, self.notes)
+        
+        # Install event filter on QLineEdit widgets to catch Enter key
+        self.name_input.installEventFilter(self)
+        self.ear_tag_input.installEventFilter(self)
+        self.sire_code.installEventFilter(self)
+        self.registration_number.installEventFilter(self)
+    
+    def eventFilter(self, obj, event):
+        """Handle Enter key to move focus to next widget instead of saving"""
+        if event.type() == event.KeyPress:
+            if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
+                # Move focus to next widget instead of triggering default button
+                self.focusNextChild()
+                return True
+        return super().eventFilter(obj, event)
+    
+    def on_breeding_method_changed(self, method):
+        """Auto-calculate dates when breeding method changes"""
+        if method != "Not Bred" and self.last_breeding_date.date().isValid():
+            self.auto_calculate_dates()
+    
+    def on_pregnancy_status_changed(self, status):
+        """Auto-calculate dates when pregnancy status changes"""
+        if status in ["Bred - Pending Check", "Confirmed Pregnant"]:
+            if self.last_breeding_date.date().isValid():
+                self.auto_calculate_dates()
+    
+    def auto_calculate_dates(self):
+        """Auto-calculate expected calving, pregnancy check, and dry-off dates"""
+        breeding_date = self.last_breeding_date.date()
+        if not breeding_date.isValid():
+            return
+        
+        # Calculate expected calving (280 days gestation)
+        expected_calving = breeding_date.addDays(280)
+        self.expected_calving.setDate(expected_calving)
+        
+        # Calculate pregnancy check date (32 days after breeding - early detection)
+        pregnancy_check = breeding_date.addDays(32)
+        self.pregnancy_check_date.setDate(pregnancy_check)
+        
+        # Calculate dry-off date (60 days before calving = 220 days after breeding)
+        dry_off = breeding_date.addDays(220)
+        self.dry_off_date.setDate(dry_off)
+    
+    def set_heifer_preset(self):
+        """Quick preset for new heifer (first-time cow)"""
+        self.lactation_number.setValue(0)
+        self.pregnancy_status.setCurrentText("Not Bred")
+        self.breeding_method.setCurrentText("Not Bred")
+        self.milking_status.setCurrentText("Not Milking")
+        self.last_calving_date.setDate(QDate())  # Clear date
+        # Clear auto-calculated dates
+        self.expected_calving.setDate(QDate())
+        self.pregnancy_check_date.setDate(QDate())
+        self.dry_off_date.setDate(QDate())
+    
+    def set_fresh_cow_preset(self):
+        """Quick preset for freshly calved cow"""
+        current_lactation = self.lactation_number.value()
+        if current_lactation == 0:
+            self.lactation_number.setValue(1)  # First lactation
+        self.pregnancy_status.setCurrentText("Not Bred")
+        self.breeding_method.setCurrentText("Not Bred")
+        self.milking_status.setCurrentText("Milking")
+        self.last_calving_date.setDate(QDate.currentDate())
+        # Clear breeding-related dates
+        self.expected_calving.setDate(QDate())
+        self.pregnancy_check_date.setDate(QDate())
+        self.dry_off_date.setDate(QDate())
+    
+    def set_dry_cow_preset(self):
+        """Quick preset for dry cow"""
+        self.milking_status.setCurrentText("Dry")
+        # If expected calving is set, dry-off should be 60 days before
+        expected = self.expected_calving.date()
+        if expected.isValid():
+            dry_off = expected.addDays(-60)
+            self.dry_off_date.setDate(dry_off)
+        else:
+            self.dry_off_date.setDate(QDate.currentDate())
     
     def load_parent_options(self, combo, sex):
         """Load parent options into combo box"""
@@ -443,9 +582,32 @@ class CattleDialog(QDialog):
                 self.dam_combo.setCurrentIndex(index)
         
         status = self.cattle_data.get('status', '')
-        index = self.status_combo.findText(status.title())
-        if index >= 0:
-            self.status_combo.setCurrentIndex(index)
+        # Handle legacy status values by migrating to new structure
+        legacy_status_map = {
+            'pregnant': ('Active', 'Bred - Pending Check'),
+            'dry': ('Active', 'Dry'),
+            'sick': ('Inactive', None),
+            'open': ('Active', 'Not Bred'),
+            'recheck': ('Active', 'Bred - Pending Check'),
+        }
+        
+        status_lower = status.lower()
+        if status_lower in legacy_status_map:
+            # Map legacy status to new structure
+            herd_status, preg_status = legacy_status_map[status_lower]
+            index = self.status_combo.findText(herd_status)
+            if index >= 0:
+                self.status_combo.setCurrentIndex(index)
+            # Also set pregnancy status if applicable
+            if preg_status:
+                preg_index = self.pregnancy_status.findText(preg_status)
+                if preg_index >= 0:
+                    self.pregnancy_status.setCurrentIndex(preg_index)
+        else:
+            # Direct mapping for current values
+            index = self.status_combo.findText(status.title())
+            if index >= 0:
+                self.status_combo.setCurrentIndex(index)
         
         # Populate calving and breeding info
         last_calving = self.cattle_data.get('last_calving_date', '')
